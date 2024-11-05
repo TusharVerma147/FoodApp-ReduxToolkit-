@@ -1,5 +1,4 @@
 import {
-  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -8,55 +7,142 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {getProductsAction} from '../../redux/config/configAction';
+import {Icons} from '../../assets';
+import { toggleLikeItem, addIncrease, removefrombag, decrease  } from '../../redux/config/configSlice';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const Home = () => {
+
+const Home = ({ navigation }) => {
   const dispatch = useDispatch();
   const apidata = useSelector((state: any) => {
     return state.mainapi.products;
   });
 
+  const likedItems = useSelector((state: any) => state.mainapi.likedItems);
+
+  const isLoading = useSelector((state: any) => state.mainapi.isLoading);
+
+  const cartItems = useSelector((state: any) => state.mainapi.cartItems);
+
+
+  // const handleToggleLike = (itemId: number) => {
+  //   dispatch(toggleLikeItem(itemId));
+  // };
+  const handleToggleLike = (item) => {
+    dispatch(toggleLikeItem(item));
+  };
+
+ const addToBag =(item) =>{
+  dispatch(addIncrease(item))
+ }
+ 
+
+ const remove = (item) =>{
+  dispatch(removefrombag(item))
+ }
+
+ const decreaseitem =(item) =>{
+  dispatch (decrease(item))
+ }
+
+  
+
+
+
   const renderItem = ({item, index}: {item: any; index: any}) => {
+    const productsInCart = cartItems.find(product => product.id === item.id);
+    const productInWishlist = likedItems.find(product => product.id === item.id);
     return (
       <View style={styles.listinside}>
-        <Image style={styles.img} source={{uri: item.image}} />
+        <View style={styles.list}>
+          <View style={styles.imgview}>
+            <Image style={styles.img} source={{uri: item.image}} />
+          </View>
+          <TouchableOpacity onPress={() => handleToggleLike(item)}>
+            <Image
+              source={productInWishlist ? Icons.love : Icons.wishlist}
+              style={styles.fav}
+            />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.titletext} numberOfLines={5}>
           {item.title}
         </Text>
         <Text style={styles.pricetext}>₹{item.price}</Text>
         <View style={styles.ratingview}>
           <Text style={styles.ratetext}>{item.rating.rate} ★</Text>
-          <Text style={styles.counttext}>{item.rating.count} Reviews</Text>
+          <Text style={styles.counttext}>[{item.rating.count} Reviews]</Text>
         </View>
         <Text style={styles.textdescription} numberOfLines={12}>
           {item.description}
         </Text>
-        <TouchableOpacity>
-            <Text style={styles.cartbutton}>Add To Cart</Text>
-        </TouchableOpacity>
+        { productsInCart ? (
+      <View style={styles.remove}>
+           <TouchableOpacity onPress={() => decreaseitem(item)}>
+           <Text style={styles.touchabletext}>-</Text>
+         </TouchableOpacity>
+         <Text style={styles.touchabletext}>{productsInCart.quantity}</Text>
+         <TouchableOpacity onPress={()=> addToBag(item)}>
+           <Text style={styles.touchabletext}>+</Text>
+         </TouchableOpacity>
+         <TouchableOpacity onPress={() => remove(item)}>
+             <Text style={styles.touchabletext}>Remove From Cart</Text>
+           </TouchableOpacity>
+           </View>
+           
+        ) :(
+        <TouchableOpacity onPress={()=> addToBag(item)}>
+        <Text style={styles.cartbutton}>Add To Bag</Text>
+      </TouchableOpacity> 
+    )}
+        
       </View>
     );
   };
+
   useEffect(() => {
     dispatch(getProductsAction());
   }, []);
+
   return (
     <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-            <Text style={styles.fliptext}>Amazon</Text>
-            <Text style={styles.subtext}>Your all in one Shopping App</Text>
+      <View style={styles.header}>
+        <View style={{flexDirection: 'row'}}>
+          <Image style={styles.tata} source={Icons.tata} />
+          <View>
+            <Text style={styles.fliptext}>TATA</Text>
+            <Text style={styles.subtext}>CLIQ</Text>
+          </View>
         </View>
-      <View style={styles.listcard}>
-        <FlatList
-          data={apidata}
-          renderItem={renderItem}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={{flexDirection: 'row'}}>
+          <TouchableOpacity onPress={() => navigation.navigate('Fav')}>
+            <Image style={styles.wishlist} source={Icons.wishlist} />
+            {likedItems.length > 0 && (
+      <Text style={styles.likeditems}>{likedItems.length}</Text>
+    )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+            <Image style={styles.wishlist} source={Icons.trolley} />
+            {cartItems.length > 0 && (
+      <Text style={styles.likeditems}>{cartItems.length}</Text>
+    )}
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View>
+      {isLoading ? (
+          <ActivityIndicator size="large" color="#de3163" style={styles.loader} />
+        ) : (
+          <FlatList
+            data={apidata}
+            renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -68,7 +154,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  listcard: {},
+
   listinside: {
     marginHorizontal: 20,
     marginVertical: 10,
@@ -83,16 +169,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 14,
-    //   width: 350,
-    //   height: 550,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  list: {flexDirection: 'row'},
+  favview: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  fav: {
+    height: 30,
+    width: 30,
+  },
+  imgview: {
+    flex: 9,
+    alignItems: 'center',
+    paddingLeft: '10%',
+  },
   img: {
-    height: 200,
+    height: 250,
     width: 200,
     resizeMode: 'contain',
-    alignSelf: 'center',
+    flex: 1,
   },
   titletext: {
     fontSize: 20,
@@ -135,28 +233,66 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
+    color: 'white',
+    backgroundColor: '#de3163',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginTop: 10,
+  },
+  header: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+  },
+  fliptext: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#de3163',
+  },
+  subtext: {
+    fontSize: 25,
+    fontWeight: '500',
     color: 'black',
-    backgroundColor: 'orange',
-    borderRadius: 20,
-    paddingVertical: 15,
-    paddingHorizontal:30,
-    margin: 10,
   },
-  header:{
-    backgroundColor:'orange',
-    paddingVertical:17,
-    marginBottom:10
+  tata: {
+    height: 50,
+    width: 50,
   },
-  fliptext:{
-     fontSize:30,
-     textAlign:'center',
-     fontWeight:'500',
-     color:'black'
+  wishlist: {
+    height: 40,
+    width: 40,
+    marginHorizontal: 10,
   },
-  subtext:{
+  loader: {  
+    justifyContent: 'center', 
+    alignItems: 'center' ,
+    flex:1
+  },
+  touchabletext: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: 'white',
+    backgroundColor: '#de3163',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginHorizontal: 5,
+    marginTop:10
+  },
+  remove:{
+    flexDirection:'row',
+  },
+  likeditems:{
+    position:'absolute',
     fontSize:20,
-     textAlign:'center',
-     fontWeight:'500',
-     color:'black'
-  }
+    marginLeft:35,
+    borderRadius:20,
+    backgroundColor:'#de3163',
+    paddingHorizontal:6,
+    textAlign:'center',
+    color:'white'
+   }
 });
